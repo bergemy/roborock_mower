@@ -24,6 +24,8 @@ from .coordinator import find_mower_devices
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_REQUEST_NEW_CODE = "request_new_code"
+
 
 class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Roborock Mower."""
@@ -54,18 +56,7 @@ class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 session=async_get_clientsession(self.hass),
             )
 
-            try:
-                await self._client.request_code()
-            except RoborockAccountDoesNotExist:
-                errors["base"] = "account_not_found"
-            except RoborockTooFrequentCodeRequests:
-                errors["base"] = "too_many_requests"
-            except RoborockRateLimit:
-                errors["base"] = "rate_limited"
-            except RoborockException:
-                _LOGGER.exception("Failed to request Roborock login code")
-                errors["base"] = "cannot_connect"
-            else:
+            if await self._async_request_code(errors):
                 return await self.async_step_code()
 
         return self.async_show_form(
@@ -84,8 +75,18 @@ class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if self._client is None or self._email is None:
                 return await self.async_step_user()
 
+            if user_input.get(CONF_REQUEST_NEW_CODE):
+                if await self._async_request_code(errors):
+                    errors["base"] = "code_resent"
+                return self._show_code_form(errors)
+
+            code = str(user_input.get(CONF_CODE, "")).strip()
+            if not code:
+                errors[CONF_CODE] = "required"
+                return self._show_code_form(errors)
+
             try:
-                user_data = await self._client.code_login(user_input[CONF_CODE].strip())
+                user_data = await self._client.code_login(code)
                 home_data = await self._client.get_home_data_v3(user_data)
             except RoborockInvalidCode:
                 errors["base"] = "invalid_code"
@@ -109,11 +110,7 @@ class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         },
                     )
 
-        return self.async_show_form(
-            step_id="code",
-            data_schema=vol.Schema({vol.Required(CONF_CODE): str}),
-            errors=errors,
-        )
+        return self._show_code_form(errors)
 
     async def async_step_reauth(
         self, entry_data: dict[str, Any]
@@ -139,21 +136,9 @@ class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         errors: dict[str, str] = {}
-        try:
-            await self._client.request_code()
-        except RoborockTooFrequentCodeRequests:
-            errors["base"] = "too_many_requests"
-        except RoborockRateLimit:
-            errors["base"] = "rate_limited"
-        except RoborockException:
-            _LOGGER.exception("Failed to request Roborock reauth code")
-            errors["base"] = "cannot_connect"
+        await self._async_request_code(errors)
 
-        return self.async_show_form(
-            step_id="reauth_code",
-            data_schema=vol.Schema({vol.Required(CONF_CODE): str}),
-            errors=errors,
-        )
+        return self._show_reauth_code_form(errors)
 
     async def async_step_reauth_code(
         self, user_input: dict[str, Any] | None = None
@@ -165,8 +150,18 @@ class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if self._client is None or self._email is None or self._reauth_entry is None:
                 return self.async_abort(reason="reauth_entry_not_found")
 
+            if user_input.get(CONF_REQUEST_NEW_CODE):
+                if await self._async_request_code(errors):
+                    errors["base"] = "code_resent"
+                return self._show_reauth_code_form(errors)
+
+            code = str(user_input.get(CONF_CODE, "")).strip()
+            if not code:
+                errors[CONF_CODE] = "required"
+                return self._show_reauth_code_form(errors)
+
             try:
-                user_data = await self._client.code_login(user_input[CONF_CODE].strip())
+                user_data = await self._client.code_login(code)
                 home_data = await self._client.get_home_data_v3(user_data)
             except RoborockInvalidCode:
                 errors["base"] = "invalid_code"
@@ -192,8 +187,55 @@ class RoborockMowerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
 
+        return self._show_reauth_code_form(errors)
+
+    async def _async_request_code(self, errors: dict[str, str]) -> bool:
+        """Request a Roborock e-mail code and fill errors on failure."""
+
+        if self._client is None:
+            errors["base"] = "cannot_connect"
+            return False
+
+        try:
+            await self._client.request_code()
+        except RoborockAccountDoesNotExist:
+            errors["base"] = "account_not_found"
+        except RoborockTooFrequentCodeRequests:
+            errors["base"] = "too_many_requests"
+        except RoborockRateLimit:
+            errors["base"] = "rate_limited"
+        except RoborockException:
+            _LOGGER.exception("Failed to request Roborock login code")
+            errors["base"] = "cannot_connect"
+        else:
+            return True
+
+        return False
+
+    def _show_code_form(self, errors: dict[str, str]) -> config_entries.ConfigFlowResult:
+        """Show the code entry form."""
+
+        return self.async_show_form(
+            step_id="code",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_CODE): str,
+                    vol.Optional(CONF_REQUEST_NEW_CODE, default=False): bool,
+                }
+            ),
+            errors=errors,
+        )
+
+    def _show_reauth_code_form(self, errors: dict[str, str]) -> config_entries.ConfigFlowResult:
+        """Show the reauth code entry form."""
+
         return self.async_show_form(
             step_id="reauth_code",
-            data_schema=vol.Schema({vol.Required(CONF_CODE): str}),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_CODE): str,
+                    vol.Optional(CONF_REQUEST_NEW_CODE, default=False): bool,
+                }
+            ),
             errors=errors,
         )
