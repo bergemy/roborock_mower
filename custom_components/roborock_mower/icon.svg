@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Roborock Mower unofficial integration icon">
+  <rect width="256" height="256" rx="56" fill="#0f1720"/>
+  <circle cx="128" cy="124" r="80" fill="#e8f2f5"/>
+  <path d="M74 141h96c12 0 22 9 24 21l2 11H62l3-17c1-9 4-15 9-15z" fill="#13766b"/>
+  <path d="M92 119h48c20 0 38 9 49 24H76c5-15 10-24 16-24z" fill="#18a384"/>
+  <path d="M104 100h31c18 0 33 11 40 26H88c4-16 9-26 16-26z" fill="#42bd95"/>
+  <circle cx="91" cy="174" r="18" fill="#13212b"/>
+  <circle cx="91" cy="174" r="7" fill="#f8fafc"/>
+  <circle cx="171" cy="174" r="18" fill="#13212b"/>
+  <circle cx="171" cy="174" r="7" fill="#f8fafc"/>
+  <path d="M170 85c18 0 33 15 33 33" fill="none" stroke="#0ea5c6" stroke-width="10" stroke-linecap="round"/>
+  <path d="M170 63c30 0 55 25 55 55" fill="none" stroke="#0ea5c6" stroke-width="10" stroke-linecap="round" opacity=".62"/>
+  <circle cx="204" cy="204" r="24" fill="#f59e0b"/>
+  <path d="M204 190v17" stroke="#0f1720" stroke-width="8" stroke-linecap="round"/>
+  <path d="M204 216h.1" stroke="#0f1720" stroke-width="8" stroke-linecap="round"/>
+</svg>
