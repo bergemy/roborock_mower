@@ -1,16 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Roborock Mower unofficial integration icon">
-  <rect width="256" height="256" rx="56" fill="#0f1720"/>
-  <circle cx="128" cy="124" r="80" fill="#e8f2f5"/>
-  <path d="M74 141h96c12 0 22 9 24 21l2 11H62l3-17c1-9 4-15 9-15z" fill="#13766b"/>
-  <path d="M92 119h48c20 0 38 9 49 24H76c5-15 10-24 16-24z" fill="#18a384"/>
-  <path d="M104 100h31c18 0 33 11 40 26H88c4-16 9-26 16-26z" fill="#42bd95"/>
-  <circle cx="91" cy="174" r="18" fill="#13212b"/>
-  <circle cx="91" cy="174" r="7" fill="#f8fafc"/>
-  <circle cx="171" cy="174" r="18" fill="#13212b"/>
-  <circle cx="171" cy="174" r="7" fill="#f8fafc"/>
-  <path d="M170 85c18 0 33 15 33 33" fill="none" stroke="#0ea5c6" stroke-width="10" stroke-linecap="round"/>
-  <path d="M170 63c30 0 55 25 55 55" fill="none" stroke="#0ea5c6" stroke-width="10" stroke-linecap="round" opacity=".62"/>
-  <circle cx="204" cy="204" r="24" fill="#f59e0b"/>
-  <path d="M204 190v17" stroke="#0f1720" stroke-width="8" stroke-linecap="round"/>
-  <path d="M204 216h.1" stroke="#0f1720" stroke-width="8" stroke-linecap="round"/>
+  <rect width="256" height="256" rx="48" fill="#0f1720"/>
+  <rect x="20" y="22" width="216" height="168" rx="30" fill="#e8f2f5"/>
+
+  <path d="M69 118h88c12 0 23 9 26 22l4 17H55l4-25c1-8 4-14 10-14z" fill="#13766b"/>
+  <path d="M88 96h43c21 0 39 10 51 27H72c5-17 10-27 16-27z" fill="#18a384"/>
+  <path d="M101 76h28c18 0 33 11 40 27H86c4-16 9-27 15-27z" fill="#42bd95"/>
+
+  <circle cx="86" cy="158" r="18" fill="#13212b"/>
+  <circle cx="86" cy="158" r="7" fill="#f8fafc"/>
+  <circle cx="162" cy="158" r="18" fill="#13212b"/>
+  <circle cx="162" cy="158" r="7" fill="#f8fafc"/>
+
+  <path d="M162 62c18 0 32 14 32 32" fill="none" stroke="#0ea5c6" stroke-width="10" stroke-linecap="round"/>
+  <path d="M162 41c30 0 53 24 53 53" fill="none" stroke="#0ea5c6" stroke-width="10" stroke-linecap="round" opacity=".62"/>
+
+  <rect x="28" y="198" width="200" height="34" rx="17" fill="#f59e0b"/>
+  <text
+    x="128"
+    y="221"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="19"
+    font-weight="800"
+    letter-spacing="1"
+    fill="#0f1720"
+  >UNOFFICIAL</text>
 </svg>
