@@ -1,5 +1,7 @@
 # Roborock Mower
 
+![Roborock Mower unofficial integration logo](../../assets/roborock_mower_logo.svg)
+
 Read-only Home Assistant custom integration for Roborock RockMow Z1 / Z115.
 
 Version 0.2 uses Roborock MQTT/DPS push as the primary status source and keeps `get_home_data_v3(user_data)` as a slow cloud fallback.
