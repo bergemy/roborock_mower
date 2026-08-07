@@ -86,11 +86,18 @@ Binary/map-like MQTT protocols `301` and `702` are logged at debug level only. T
 Known `mow_state` mappings:
 
 - `0` = `idle`
+- `51` = `resuming`
 - `55` = `area_mowing`
 - `56` = `edge_mowing`
-- `57` = `moving_to_area`
+- `57` = `moving_to_destination`
+- `58` = `paused`
 - `61` = `returning_to_charge_low_battery`
 - `76` = `transit`
+
+Observed notes:
+
+- During edge cutting, the mower can briefly report `57` when moving to another destination before continuing.
+- At the end of a job, the mower may drive over an area/path on the way back to the dock without exposing that area name as a plain DPS value.
 
 Unknown values are preserved as `unknown_<code>` and the raw value is available in entity attributes.
 
