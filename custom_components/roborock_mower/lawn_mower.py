@@ -15,9 +15,9 @@ from .const import DOMAIN, STATUS_CHARGE_STATE, STATUS_ERROR_CODE, STATUS_MOW_ST
 from .coordinator import RoborockMowerCoordinator, RoborockMowerDevice, mower_device_id, status_value
 
 
-MOWING_STATES = {1, 55, 56, 57, 76}
+MOWING_STATES = {1, 51, 55, 56, 57, 76}
 RETURNING_STATES = {3, 61}
-PAUSED_STATES = {2}
+PAUSED_STATES = {2, 58}
 ERROR_STATES = {5}
 DOCKED_CHARGE_STATES = {1, 2}
 
