@@ -51,6 +51,8 @@ It also creates these read-only status entities:
 
 All entities are linked to the same Home Assistant device. Unique IDs use DUID, with SN as fallback.
 
+The `gps_raw` sensor keeps Roborock's raw DPS `142` value as its state. When the observed RockMow GPS payload format can be decoded, it also exposes `latitude` and `longitude` attributes. This is still treated as an experimental "last known position" value, not a live tracker.
+
 ## Status source
 
 MQTT protocol `102` DPS updates are applied immediately. Cloud polling runs every 15 minutes as fallback/resynchronization.
@@ -121,6 +123,7 @@ Useful attributes include:
 - `last_mqtt_error`
 - `last_cloud_update`
 - `last_rate_limit`
+- `latitude` and `longitude` on `gps_raw`, when DPS `142` can be decoded
 
 If the standalone MQTT probe sees activity but Home Assistant does not update, check these attributes first. `mqtt_subscribed` should be true for the mower, `last_mqtt_update` should move when DPS messages arrive, and `last_mqtt_error` should be empty.
 
