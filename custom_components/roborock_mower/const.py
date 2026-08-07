@@ -58,6 +58,7 @@ CHARGE_STATE_MAP: Final = {
 
 MOW_STATE_MAP: Final = {
     0: "idle",
+    51: "resuming",
     1: "mowing",
     2: "paused",
     3: "returning_to_dock",
@@ -65,7 +66,8 @@ MOW_STATE_MAP: Final = {
     5: "error",
     55: "area_mowing",
     56: "edge_mowing",
-    57: "moving_to_area",
+    57: "moving_to_destination",
+    58: "paused",
     61: "returning_to_charge_low_battery",
     76: "transit",
 }
