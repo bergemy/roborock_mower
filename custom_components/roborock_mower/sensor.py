@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 from dataclasses import dataclass
 import logging
+import struct
 from typing import Any, Callable
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
@@ -30,6 +33,32 @@ from .coordinator import RoborockMowerCoordinator, RoborockMowerDevice, mower_de
 
 _LOGGER = logging.getLogger(__name__)
 _UNKNOWN_CODES_LOGGED: set[tuple[str, int]] = set()
+
+
+def decode_gps_coordinate(value: Any) -> dict[str, Any]:
+    """Decode the observed RockMow raw GPS payload."""
+
+    if not isinstance(value, str):
+        return {}
+
+    try:
+        raw = base64.b64decode(value + "=" * (-len(value) % 4))
+    except (binascii.Error, ValueError):
+        return {"gps_decode_error": "invalid_base64"}
+
+    if len(raw) < 23 or raw[0:4] != b"\x08\x00\x12\x12" or raw[4] != 0x09 or raw[13] != 0x11:
+        return {
+            "gps_payload_bytes": len(raw),
+            "gps_decode_error": "unknown_format",
+        }
+
+    latitude = struct.unpack_from("<d", raw, 5)[0]
+    longitude = struct.unpack_from("<d", raw, 14)[0]
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "gps_payload_bytes": len(raw),
+    }
 
 
 def mapped_state(value: Any, mapping: dict[int, str], state_name: str) -> str | None:
@@ -180,7 +209,7 @@ class RoborockMowerSensor(CoordinatorEntity[RoborockMowerCoordinator], SensorEnt
         if self._mower is None:
             return {}
         raw_value = status_value(self._mower.device, self.entity_description.status_id)
-        return {
+        attrs = {
             "status_id": self.entity_description.status_id,
             "raw_value": raw_value,
             "last_cloud_update": self.coordinator.last_cloud_update,
@@ -199,3 +228,6 @@ class RoborockMowerSensor(CoordinatorEntity[RoborockMowerCoordinator], SensorEnt
             "product_name": self._mower.product.name,
             "product_model": self._mower.product.model,
         }
+        if self.entity_description.status_id == STATUS_GPS_COORDINATE:
+            attrs.update(decode_gps_coordinate(raw_value))
+        return attrs
