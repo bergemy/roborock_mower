@@ -110,6 +110,9 @@ class RoborockMowerEntity(CoordinatorEntity[RoborockMowerCoordinator], LawnMower
             "last_mqtt_protocol": self.coordinator.last_mqtt_protocol,
             "last_mqtt_seen": self.coordinator.last_mqtt_seen.get(self._mower_id),
             "last_mqtt_online_hint": self.coordinator.last_mqtt_online_hint.get(self._mower_id),
+            "mqtt_connected": self.coordinator.mqtt_connected,
+            "mqtt_subscribed": self.coordinator.mqtt_subscribed.get(self._mower_id),
+            "last_mqtt_error": self.coordinator.last_mqtt_error,
         }
 
 
