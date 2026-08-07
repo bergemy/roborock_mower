@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
+from roborock.devices.transport.mqtt_channel import MqttChannel
 from roborock.data import HomeData, HomeDataDevice, HomeDataProduct, UserData
 from roborock.exceptions import RoborockException, RoborockInvalidCredentials, RoborockRateLimit
 from roborock.mqtt.roborock_session import create_lazy_mqtt_session
 from roborock.protocol import create_mqtt_params
-from roborock.devices.transport.mqtt_channel import create_mqtt_channel
 from roborock.roborock_message import RoborockMessage
 from roborock.web_api import RoborockApiClient
 
@@ -40,6 +41,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+MQTT_RESTART_DELAY = timedelta(seconds=30)
 
 AUTH_REFRESH_METHODS = (
     "refresh_user_data",
@@ -116,10 +118,14 @@ class RoborockMowerCoordinator(DataUpdateCoordinator[dict[str, RoborockMowerDevi
         self.last_mqtt_seen: dict[str, datetime] = {}
         self.last_mqtt_online_hint: dict[str, bool] = {}
         self.last_mqtt_payload: dict[str, dict[str, Any]] = {}
+        self.mqtt_connected = False
+        self.mqtt_subscribed: dict[str, bool] = {}
+        self.last_mqtt_error: str | None = None
         self._last_device_status: dict[str, dict[str, Any]] = {}
         self._mqtt_session: Any | None = None
-        self._mqtt_unsubscribers: list[Any] = []
+        self._mqtt_tasks: list[Any] = []
         self._offline_callbacks: dict[str, Any] = {}
+        self._stopping_mqtt = False
         self.client = RoborockApiClient(
             username=self.email,
             session=async_get_clientsession(hass),
@@ -157,35 +163,35 @@ class RoborockMowerCoordinator(DataUpdateCoordinator[dict[str, RoborockMowerDevi
 
         for mower_id, mower in self.data.items():
             try:
-                channel = create_mqtt_channel(
-                    self.user_data,
-                    mqtt_params,
+                channel = MqttChannel(
                     self._mqtt_session,
-                    mower.device,
-                )
-                unsubscribe = await channel.subscribe(
-                    lambda message, current_mower_id=mower_id: self._handle_mqtt_message(
-                        current_mower_id,
-                        message,
-                    )
+                    mower.device.duid,
+                    mower.device.local_key,
+                    self.user_data.rriot,
+                    mqtt_params,
                 )
             except RoborockException as err:
                 _LOGGER.warning(
-                    "Could not subscribe to Roborock MQTT for mower %s; cloud fallback remains active: %s",
+                    "Could not create Roborock MQTT channel for mower %s; cloud fallback remains active: %s",
                     mower.device.name,
                     err,
                 )
                 continue
 
-            self._mqtt_unsubscribers.append(unsubscribe)
-            _LOGGER.info("Listening for Roborock MQTT updates for mower %s", mower.device.name)
+            self.mqtt_subscribed[mower_id] = False
+            task = self.hass.async_create_task(
+                self._async_mqtt_watch_loop(mower_id, mower.device.name, channel)
+            )
+            self._mqtt_tasks.append(task)
+            _LOGGER.info("Starting Roborock MQTT watch loop for mower %s", mower.device.name)
 
     async def async_stop_mqtt(self) -> None:
         """Stop MQTT listeners."""
 
-        for unsubscribe in self._mqtt_unsubscribers:
-            unsubscribe()
-        self._mqtt_unsubscribers.clear()
+        self._stopping_mqtt = True
+        for task in self._mqtt_tasks:
+            task.cancel()
+        self._mqtt_tasks.clear()
 
         for cancel in self._offline_callbacks.values():
             cancel()
@@ -194,6 +200,42 @@ class RoborockMowerCoordinator(DataUpdateCoordinator[dict[str, RoborockMowerDevi
         if self._mqtt_session is not None:
             await self._mqtt_session.close()
             self._mqtt_session = None
+        self.mqtt_connected = False
+
+    async def _async_mqtt_watch_loop(self, mower_id: str, mower_name: str, channel: MqttChannel) -> None:
+        """Watch the Roborock MQTT stream and apply mower updates."""
+
+        while not self._stopping_mqtt:
+            try:
+                _LOGGER.info("Subscribing to Roborock MQTT stream for mower %s", mower_name)
+                self.mqtt_subscribed[mower_id] = True
+                self.last_mqtt_error = None
+                async for message in channel.subscribe_stream():
+                    self.mqtt_connected = channel.is_connected
+                    self._handle_mqtt_message(mower_id, message)
+            except Exception as err:  # noqa: BLE001 - keep MQTT fallback loop alive.
+                if self._stopping_mqtt:
+                    return
+                self.mqtt_connected = False
+                self.mqtt_subscribed[mower_id] = False
+                self.last_mqtt_error = str(err)
+                _LOGGER.warning(
+                    "Roborock MQTT watch loop for mower %s stopped; retrying in %.0f seconds: %s",
+                    mower_name,
+                    MQTT_RESTART_DELAY.total_seconds(),
+                    err,
+                )
+                await asyncio.sleep(MQTT_RESTART_DELAY.total_seconds())
+            else:
+                if not self._stopping_mqtt:
+                    self.mqtt_connected = False
+                    self.mqtt_subscribed[mower_id] = False
+                    _LOGGER.warning(
+                        "Roborock MQTT watch loop for mower %s ended; retrying in %.0f seconds",
+                        mower_name,
+                        MQTT_RESTART_DELAY.total_seconds(),
+                    )
+                    await asyncio.sleep(MQTT_RESTART_DELAY.total_seconds())
 
     async def _async_update_data(self) -> dict[str, RoborockMowerDevice]:
         """Fetch fresh mower data from Roborock Cloud."""
