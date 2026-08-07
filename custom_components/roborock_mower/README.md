@@ -116,8 +116,13 @@ Useful attributes include:
 - `last_mqtt_seen`
 - `last_mqtt_online_hint`
 - `last_mqtt_payload`
+- `mqtt_connected`
+- `mqtt_subscribed`
+- `last_mqtt_error`
 - `last_cloud_update`
 - `last_rate_limit`
+
+If the standalone MQTT probe sees activity but Home Assistant does not update, check these attributes first. `mqtt_subscribed` should be true for the mower, `last_mqtt_update` should move when DPS messages arrive, and `last_mqtt_error` should be empty.
 
 Diagnostics redact sensitive values such as `localKey`, `duid`, `sn`, `token`, and `rriot`.
 
